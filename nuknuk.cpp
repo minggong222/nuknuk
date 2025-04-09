@@ -151,6 +151,8 @@ class Wordle : public Game {
 public:
     void play() override {
         //스더 이 함수가 메인이야
+
+        cout <<"hello";
     }
 };
 
