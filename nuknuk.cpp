@@ -1,7 +1,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
-
+#include <unistd.h>
+#include <termio.h>
 using namespace std;
 
 class Game {
@@ -25,98 +26,121 @@ private:
     }
 
     void displayBoard() {
+        system("clear");
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 cout << arr[i][j] << "\t";
             }
             cout << '\n';
         }
+        cout << "q : 종료\n";
     }
 
     void move(char input) {
+        bool sw = false;
         switch (input) {
-        case 'u':
+        case 'A':
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
+                    if(!arr[j][i])  continue;
+                    
                     for (int k = j + 1; k < 4; k++) {
                         if (arr[j][i] == arr[k][i]) {
                             arr[j][i] *= 2;
                             arr[k][i] = 0;
+                            sw = true;
                             break;
                         }
                     }
                 }
                 for (int j = 0; j < 4; j++) {
+                    
                     for (int k = j + 1; k < 4; k++) {
                         if (!arr[j][i] && arr[k][i]) {
                             arr[j][i] = arr[k][i];
                             arr[k][i] = 0;
+                            sw = true;
                             break;
                         }
                     }
                 }
             }
             break;
-        case 'd':
+        case 'B':
             for (int i = 3; i >= 0; i--) {
                 for (int j = 3; j >= 0; j--) {
+                    if(!arr[j][i])  continue;
+                    
                     for (int k = j - 1; k >= 0; k--) {
                         if (arr[j][i] == arr[k][i]) {
                             arr[j][i] *= 2;
                             arr[k][i] = 0;
+                            sw = true;
                             break;
                         }
                     }
                 }
                 for (int j = 3; j >= 0; j--) {
+                    
                     for (int k = j - 1; k >= 0; k--) {
                         if (!arr[j][i] && arr[k][i]) {
                             arr[j][i] = arr[k][i];
                             arr[k][i] = 0;
+                            sw = true;
                             break;
                         }
                     }
                 }
             }
             break;
-        case 'r':
+        case 'C':
             for (int i = 3; i >= 0; i--) {
                 for (int j = 3; j >= 0; j--) {
+                    if(!arr[i][j])  continue;
+                    
                     for (int k = j - 1; k >= 0; k--) {
                         if (arr[i][j] == arr[i][k]) {
                             arr[i][j] *= 2;
                             arr[i][k] = 0;
+                            sw = true;
                             break;
                         }
                     }
                 }
                 for (int j = 3; j >= 0; j--) {
+                    
                     for (int k = j - 1; k >= 0; k--) {
                         if (!arr[i][j] && arr[i][k]) {
                             arr[i][j] = arr[i][k];
                             arr[i][k] = 0;
+                            sw = true;
                             break;
                         }
                     }
                 }
             }
             break;
-        case 'l':
+        case 'D':
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
+                    if(!arr[i][j])  continue;
+                    
                     for (int k = j + 1; k < 4; k++) {
                         if (arr[i][j] == arr[i][k]) {
                             arr[i][j] *= 2;
                             arr[i][k] = 0;
+                            sw = true;
                             break;
                         }
                     }
                 }
                 for (int j = 0; j < 4; j++) {
+                    
                     for (int k = j + 1; k < 4; k++) {
                         if (!arr[i][j] && arr[i][k]) {
                             arr[i][j] = arr[i][k];
                             arr[i][k] = 0;
+                            sw = true;
                             break;
                         }
                     }
@@ -124,18 +148,45 @@ private:
             }
             break;
         }
+        if(sw)
+            spawnTile();
+        return;
+    }
+    int getch(void){
+        int ch;
+
+        struct termios buf;
+        struct termios current;
+
+        tcgetattr(0, &buf);
+
+        current = buf;
+        buf.c_lflag &= ~ICANON;    // non-canonical input 설정
+	    buf.c_lflag &= ~ECHO; 
+
+        tcsetattr(0, TCSANOW, &current);
+        ch = getchar();
+        tcsetattr(0, TCSANOW, &buf);
+
+        return ch;
     }
 
 public:
     void play() override {
+        spawnTile();
         while (true) {
-            spawnTile();
             displayBoard();
             char input;
-            cin >> input;
+            
+            input = getch();
             if (input == 'q') break;
-            move(input);
-            system("clear");
+            if (input == 27) { // ESC
+                input = getch();
+                if (input == 91) {
+                    input= getch();
+                    move(input);
+                }
+            }
         }
     }
 };
