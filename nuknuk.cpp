@@ -1,8 +1,11 @@
 #include <iostream>
 #include <cstdlib>
+#include <stdlib.h>
 #include <ctime>
+#include <math.h>
 #include <unistd.h>
 #include <termio.h>
+#include <ncurses.h>
 using namespace std;
 
 class Game {
@@ -24,17 +27,35 @@ private:
             }
         }
     }
+    WINDOW* createBox(int y, int x, int height, int width, int value) {
+        WINDOW* win = newwin(height-1, width-2, y, x);
 
-    void displayBoard() {
-        system("clear");
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                cout << arr[i][j] << "\t";
-            }
-            cout << '\n';
+        if (value != 0) {
+            wbkgd(win, COLOR_PAIR(log2(value) + 1)); 
+            mvwprintw(win, height / 2, (width - 4) / 2, "%4d", value);
+        }else{
+            wbkgd(win, COLOR_PAIR(1)); 
         }
-        cout << "q : 종료\n";
+        wrefresh(win);
+        return win;
     }
+    
+    void displayBoard() {
+        clear(); // 화면 초기화
+        int startY = 1;      // 시작 Y 좌표
+        int startX = 2;      // 시작 X 좌표
+        int boxHeight = 5;   // 각 상자의 세로 길이
+        int boxWidth = 10;   // 각 상자의 가로 길이
+    
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                int y = startY + i * boxHeight;
+                int x = startX + j * boxWidth;
+                createBox(y, x, boxHeight, boxWidth, arr[i][j]);
+            }
+        }
+    }
+    
 
     void move(char input) {
         bool sw = false;
@@ -152,7 +173,7 @@ private:
             spawnTile();
         return;
     }
-    int getch(void){
+    int getc(void){
         int ch;
 
         struct termios buf;
@@ -170,24 +191,46 @@ private:
 
         return ch;
     }
+    void setColor(){
+        init_color(12, 250, 250, 250);    // 어두운 회색
+        init_color(11, 300, 300, 300);    // 어두운 회색
+        init_color(10, 350, 350, 350);    // 어두운 회색
+        init_color(9, 400, 400, 400);    // 어두운 회색
+        init_color(8, 450, 450, 450);    // 어두운 회색
+        init_color(7, 500, 500, 500);    // 어두운 회색
+        init_color(6, 550, 550, 550);    // 어두운 회색
+        init_color(5, 600, 600, 600);    // 어두운 회색
+        init_color(4, 650, 650, 650);    // 어두운 회색
+        init_color(3, 700, 700, 700);    // 어두운 회색
+        init_color(2, 750, 750, 750);    // 어두운 회색
+        init_color(1, 800, 800, 800);    // 어두운 회색
 
+        for (int i = 1; i <= 12; i++) {
+            init_pair(i, COLOR_BLACK, i);
+        }
+    }
 public:
     void play() override {
+        initscr();
+        start_color();
+        curs_set(0);
+        setColor();
         spawnTile();
         while (true) {
             displayBoard();
             char input;
             
-            input = getch();
+            input = getc();
             if (input == 'q') break;
             if (input == 27) { // ESC
-                input = getch();
+                input = getc();
                 if (input == 91) {
-                    input= getch();
+                    input= getc();
                     move(input);
                 }
             }
         }
+        endwin();
     }
 };
 
