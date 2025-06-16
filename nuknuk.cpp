@@ -623,7 +623,6 @@ int main() {
         }
 
         game->play();         // 게임 실행 (endwin 제거)
-        delete game;
     }
 
     endwin();  // 안전하게 추가
