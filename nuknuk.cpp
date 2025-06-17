@@ -326,26 +326,30 @@ class Chess : public Game {
 
 public:
     // 생성자: 초기 턴은 백, 앙파상 위치 초기화 후 보드 설정
-    Chess() : current_turn(0), en_passant_target({ -1, -1 }) {
+    Chess() : current_turn(0), en_passant_target({ -1, -1 }) 
+    {
         init_board();
     }
 
     // 보드 초기화: 기본 체스 시작 배치
-    void init_board() {
+    void init_board() 
+    {
         // 빈 칸으로 초기화
         for (int i = 0; i < 8; ++i)
             for (int j = 0; j < 8; ++j)
                 board[i][j] = { ' ', ' ' };
 
         // 폰 배치
-        for (int i = 0; i < 8; ++i) {
+        for (int i = 0; i < 8; ++i) 
+        {
             board[1][i] = { 'p', 'b' }; // 흑
             board[6][i] = { 'p', 'w' }; // 백
         }
 
         // 주요 기물 배치
         char types[8] = { 'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r' };
-        for (int i = 0; i < 8; ++i) {
+        for (int i = 0; i < 8; ++i) 
+        {
             board[0][i] = { types[i], 'b' }; // 흑
             board[7][i] = { types[i], 'w' }; // 백
         }
@@ -353,8 +357,10 @@ public:
 
     // 현재 보드 상태 출력
     void print_board() const {
-        auto piece_symbol = [](char type, char color) -> string {
-            switch (type) {
+        auto piece_symbol = [](char type, char color) -> string 
+        {
+            switch (type) 
+            {
             case 'p': return color == 'w' ? "♙" : "♟";
             case 'r': return color == 'w' ? "♖" : "♜";
             case 'n': return color == 'w' ? "♘" : "♞";
@@ -368,32 +374,40 @@ public:
         const char* row[8] = {"a","b","c","d","e","f","g","h"};
         const char* col[8] = {"1","2","3","4","5","6","7","8"};
         box(2, 2, 3, 9, "  ", 17);
-        for(int i = 0; i < 8; i++){
+        for(int i = 0; i < 8; i++)
+        {
             box(2, 11+i*9, 3, 9, row[i], 17);
         }
         box(2, 83, 3, 9, "  ", 17);
-        for (int i = 0; i < 8; ++i) {
+        for (int i = 0; i < 8; ++i) 
+        {
             box(5+i*3, 2, 3, 9, col[7-i], 17);
-            for (int j = 0; j < 8; ++j) {
+            for (int j = 0; j < 8; ++j) 
+            {
                 Piece p = board[i][j];
-                if((i+j)%2 == 0){
+                if((i+j)%2 == 0)
+                {
                     box(5+i*3, 11+j*9, 3, 9, piece_symbol(p.type, p.color).c_str(), 16);
-                }else{
+                }else
+                {
                     box(5+i*3, 11+j*9, 3, 9, piece_symbol(p.type, p.color).c_str(), 15);
                 }
             }
             box(5+i*3, 83, 3, 9, col[7-i], 17);
         }
         box(29, 2, 3, 9, "  ", 17);
-        for(int i = 0; i < 8; i++){
+        for(int i = 0; i < 8; i++)
+        {
             box(29, 11+i*9, 3, 9, row[i], 17);
         }
         box(29, 83, 3, 9, "  ", 17);
         /*cout << "\n    a   b   c   d   e   f   g   h\n";
         cout << "  +---+---+---+---+---+---+---+---+\n";
-        for (int i = 0; i < 8; ++i) {
+        for (int i = 0; i < 8; ++i) 
+        {
             cout << 8 - i << " |";
-            for (int j = 0; j < 8; ++j) {
+            for (int j = 0; j < 8; ++j) 
+            {
                 Piece p = board[i][j];
                 cout << " " << piece_symbol(p.type, p.color) << " |";
             }
@@ -404,11 +418,13 @@ public:
     }
 
     // 이동 경로가 비어있는지 확인 (룩, 비숍, 퀸용)
-    bool is_path_clear(int from_row, int from_col, int to_row, int to_col) {
+    bool is_path_clear(int from_row, int from_col, int to_row, int to_col) 
+    {
         int d_row = (to_row - from_row != 0) ? (to_row - from_row) / abs(to_row - from_row) : 0;
         int d_col = (to_col - from_col != 0) ? (to_col - from_col) / abs(to_col - from_col) : 0;
         int r = from_row + d_row, c = from_col + d_col;
-        while (r != to_row || c != to_col) {
+        while (r != to_row || c != to_col) 
+        {
             if (board[r][c].type != ' ')
                 return false;
             r += d_row;
@@ -418,22 +434,27 @@ public:
     }
 
     // 특정 기물이 특정 위치로 이동 가능한지 확인
-    bool is_valid_move(const Piece& p, int from_row, int from_col, int to_row, int to_col, bool is_real = true) {
+    bool is_valid_move(const Piece& p, int from_row, int from_col, int to_row, int to_col, bool is_real = true) 
+    {
         int d_row = to_row - from_row, d_col = to_col - from_col;
         Piece target = board[to_row][to_col];
         if (target.type != ' ' && target.color == p.color)
             return false;
 
-        switch (p.type) {
-        case 'p': { // 폰
+        switch (p.type) 
+        {
+        case 'p': 
+        { // 폰
             int dir = (p.color == 'w') ? -1 : 1;
             int start_row = (p.color == 'w') ? 6 : 1;
-            if (d_col == 0 && target.type == ' ') {
+            if (d_col == 0 && target.type == ' ') 
+            {
                 if (d_row == dir) return true;
                 if (from_row == start_row && d_row == 2 * dir &&
                     board[from_row + dir][from_col].type == ' ') return true;
             }
-            else if (abs(d_col) == 1 && d_row == dir) {
+            else if (abs(d_col) == 1 && d_row == dir) 
+            {
                 if (target.type != ' ' && target.color != p.color) return true;
                 if (make_pair(to_row, to_col) == en_passant_target) return true; // 앙파상
             }
@@ -449,14 +470,17 @@ public:
         case 'k': // 킹
             if (abs(d_row) <= 1 && abs(d_col) <= 1) return true;
             // 캐슬링
-            if (is_real && d_row == 0 && abs(d_col) == 2) {
+            if (is_real && d_row == 0 && abs(d_col) == 2) 
+            {
                 int rook_col = (d_col > 0) ? 7 : 0;
                 Piece rook = board[from_row][rook_col];
-                if (rook.type == 'r' && rook.color == p.color) {
+                if (rook.type == 'r' && rook.color == p.color) 
+                {
                     if (is_path_clear(from_row, from_col, from_row, rook_col) &&
                         !is_square_attacked(from_row, from_col, opposite_color(p.color)) &&
                         !is_square_attacked(from_row, from_col + d_col / 2, opposite_color(p.color)) &&
-                        !is_square_attacked(from_row, to_col, opposite_color(p.color))) {
+                        !is_square_attacked(from_row, to_col, opposite_color(p.color))) 
+                        {
                         return true;
                     }
                 }
@@ -470,7 +494,8 @@ public:
     }
 
     // 특정 색의 킹 위치 찾기
-    pair<int, int> find_king(char color) {
+    pair<int, int> find_king(char color) 
+    {
         for (int i = 0; i < 8; ++i)
             for (int j = 0; j < 8; ++j)
                 if (board[i][j].type == 'k' && board[i][j].color == color)
@@ -479,14 +504,17 @@ public:
     }
 
     // 상대 색 리턴 ('w' → 'b', 'b' → 'w')
-    char opposite_color(char color) {
+    char opposite_color(char color) 
+    {
         return color == 'w' ? 'b' : 'w';
     }
 
     // 주어진 위치가 상대 기물에 의해 공격받고 있는지 확인
-    bool is_square_attacked(int row, int col, char by_color) {
+    bool is_square_attacked(int row, int col, char by_color) 
+    {
         for (int i = 0; i < 8; ++i)
-            for (int j = 0; j < 8; ++j) {
+            for (int j = 0; j < 8; ++j) 
+            {
                 Piece p = board[i][j];
                 if (p.type != ' ' && p.color == by_color)
                     if (is_valid_move(p, i, j, row, col, false))
@@ -496,21 +524,25 @@ public:
     }
 
     // 특정 색의 킹이 체크 상태인지 확인
-    bool is_in_check(char color) {
+    bool is_in_check(char color) 
+    {
         pair<int, int> king = find_king(color);
         if (king.first == -1) return false;
         return is_square_attacked(king.first, king.second, opposite_color(color));
     }
 
     // 해당 색이 둘 수 있는 합법적인 수가 하나라도 있는지 확인
-    bool has_any_valid_move(char color) {
+    bool has_any_valid_move(char color) 
+    {
         for (int i = 0; i < 8; ++i)
             for (int j = 0; j < 8; ++j) {
                 Piece p = board[i][j];
-                if (p.type != ' ' && p.color == color) {
+                if (p.type != ' ' && p.color == color) 
+                {
                     for (int r = 0; r < 8; ++r)
                         for (int c = 0; c < 8; ++c)
-                            if (is_valid_move(p, i, j, r, c)) {
+                            if (is_valid_move(p, i, j, r, c)) 
+                            {
                                 // 시뮬레이션 실행
                                 Piece from = board[i][j], to = board[r][c];
                                 board[r][c] = from;
@@ -527,9 +559,11 @@ public:
     }
 
     // 실제 기물 이동 수행
-    bool move_piece(const string& move) {
+    bool move_piece(const string& move) 
+    {
         initscr();
-        if (move.length() != 4) {
+        if (move.length() != 4) 
+        {
             cout << "잘못된 입력입니다! (예: e2e4)                          \n";
             return false;
         }
@@ -539,24 +573,28 @@ public:
         int to_col = move[2] - 'a', to_row = 8 - (move[3] - '0');
 
         if (from_row < 0 || from_row > 7 || to_row < 0 || to_row > 7 ||
-            from_col < 0 || from_col > 7 || to_col < 0 || to_col > 7) {
+            from_col < 0 || from_col > 7 || to_col < 0 || to_col > 7) 
+            {
             cout << "잘못된 위치입니다!                                     \n";
             return false;
         }
 
         Piece p = board[from_row][from_col];
-        if (p.type == ' ') {
+        if (p.type == ' ') 
+        {
             cout << "빈 칸입니다!                                           \n";
             return false;
         }
 
         if ((current_turn == 0 && p.color != 'w') ||
-            (current_turn == 1 && p.color != 'b')) {
+            (current_turn == 1 && p.color != 'b')) 
+            {
             cout << "잘못된 턴입니다!                                        \n";
             return false;
         }
 
-        if (!is_valid_move(p, from_row, from_col, to_row, to_col)) {
+        if (!is_valid_move(p, from_row, from_col, to_row, to_col)) 
+        {
             cout << "허용되지 않은 이동입니다!                                  \n";
             return false;
         }
@@ -566,12 +604,14 @@ public:
         board[from_row][from_col] = { ' ', ' ' };
 
         // 앙파상 처리
-        if (p.type == 'p' && to_col != from_col && captured.type == ' ') {
+        if (p.type == 'p' && to_col != from_col && captured.type == ' ') 
+        {
             board[from_row][to_col] = { ' ', ' ' };
         }
 
         // 캐슬링 시 룩 이동
-        if (p.type == 'k' && abs(to_col - from_col) == 2) {
+        if (p.type == 'k' && abs(to_col - from_col) == 2) 
+        {
             int rook_from = (to_col > from_col) ? 7 : 0;
             int rook_to = (to_col + from_col) / 2;
             board[to_row][rook_to] = board[to_row][rook_from];
@@ -579,7 +619,8 @@ public:
         }
 
         // 체크 상태 여부 확인
-        if (is_in_check(p.color)) {
+        if (is_in_check(p.color)) 
+        {
             cout << "자기 킹이 체크에 빠집니다!                             \n";
             board[from_row][from_col] = p;
             board[to_row][to_col] = captured;
@@ -587,9 +628,11 @@ public:
         }
 
         // 폰 승격
-        if (p.type == 'p' && (to_row == 0 || to_row == 7)) {
+        if (p.type == 'p' && (to_row == 0 || to_row == 7)) 
+        {
             char choice;
-            do {
+            do 
+            {
                 cout << "승격할 기물을 선택하세요 (q, r, b, n):                         ";
                 cin >> choice;
             } while (choice != 'q' && choice != 'r' && choice != 'b' && choice != 'n');
@@ -606,18 +649,22 @@ public:
         char next_color = current_turn == 0 ? 'w' : 'b';
 
         // 체크/체크메이트/스테일메이트 확인
-        if (is_in_check(next_color)) {
-            if (!has_any_valid_move(next_color)) {
+        if (is_in_check(next_color)) 
+        {
+            if (!has_any_valid_move(next_color)) 
+            {
                 print_board();
                 cout << (next_color == 'w' ? "백" : "흑") << "이 체크메이트로 패배했습니다!                         \n";
                 cin.get();
                 exit(0);
             }
-            else {
+            else 
+            {
                 cout << "체크!                                                      \n";
             }
         }
-        else if (!has_any_valid_move(next_color)) {
+        else if (!has_any_valid_move(next_color)) 
+        {
             print_board();
             cout << "스테일메이트! 무승부입니다.                                        \n";
             cin.get();
@@ -631,7 +678,8 @@ public:
     }
 
     // 게임 루프 실행
-    void play() override {
+    void play() override 
+    {
     initscr();      // ncurses 초기화
     clear();        // 화면 지우기
     refresh();      // 화면 갱신
@@ -640,14 +688,17 @@ public:
     char buffer[100];
     string input;
 
-    while (true) {
+    while (true) 
+    {
         print_board();  // 보드 그리기 함수 (ncurses 기반이어야 함)
         move(35, 0);     // 커서 이동
         clrtoeol();      // 기존 줄 내용 지우기
 
-        if (current_turn == 0) {
+        if (current_turn == 0) 
+        {
             mvprintw(35, 0, "백의 턴입니다. (예: e2e4): ");
-        } else {
+        } else 
+        {
             mvprintw(35, 0, "흑의 턴입니다. (예: e2e4): ");
         }
 
