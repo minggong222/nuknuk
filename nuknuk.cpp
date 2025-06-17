@@ -8,6 +8,8 @@
 #include <ncurses.h>
 #include <string>
 #include <cmath>
+#include <locale.h>
+#include <cstring>
 using namespace std;
 
 // 기물 구조체: 종류(type)와 색(color)을 저장
@@ -34,7 +36,10 @@ void setColor(){
     init_color(13, 320, 760, 880);    // 어두운 회색
     init_color(14, 1000, 1000, 1000);
 
-    for (int i = 1; i <= 14; i++) {
+    init_color(15, 400, 320, 240);
+    init_color(16, 1000, 1000, 1000);
+    init_color(17, 500, 500, 500);
+    for (int i = 1; i <= 17; i++) {
         init_pair(i, COLOR_BLACK, i);
     }
 }
@@ -56,35 +61,37 @@ int getc(void){
 
     return ch;
 }
-WINDOW* box(int y, int x, int height, int width, const char* value, bool sw) {
+WINDOW* box(int y, int x, int height, int width, const char* value, int color) {
     WINDOW* win = newwin(height-1, width-2, y, x);
 
-    if (sw) {
-        wbkgd(win, COLOR_PAIR(13));
-        mvwprintw(win, height / 2, (width - 4) / 2, "%4s", value);
-    }else{
-        wbkgd(win, COLOR_PAIR(14));
-        mvwprintw(win, height / 2, (width - 4) / 2, "%4s", value);
-    }
+    wbkgd(win, COLOR_PAIR(color));
+
+    int val_len = strlen(value);
+    int start_y = (height - 1) / 2;               // 세로 중앙
+    int start_x = ((width - 2) - val_len) / 2;    // 가로 중앙 (박스 너비에서 value 길이 빼고 절반)
+
+    mvwprintw(win, start_y, start_x, "%s", value);
+    
     wrefresh(win);
     return win;
 }
+
 int choiceGame() {
     keypad(stdscr, TRUE);
 
     int choice = 1;
-    const char* items[4] = {"2048", "Chess", "Kordle", "Exit"};
+    const char* items[4] = {"2048", "체스", "꼬들", "종료"};
 
-    while (true) {
+    while (true) { 
         clear();
         refresh();
         for (int i = 0; i < 4; ++i) {
-            bool sw = true;
+            int color = 13;
             if (i == choice - 1) {
             } else {
-                sw = false;
+                color = 14;
             }
-            box(2+i*5, 5, 5, 50, items[i], sw);
+            box(2+i*5, 5, 5, 50, items[i], color);
         }
 
         int input = getch();
@@ -107,7 +114,7 @@ public:
 class Game2048 : public Game {
 private:
     int arr[4][4] = {};
-
+    int sum = 0;
     void spawnTile() {
         while (true) {
             int x = rand() % 4;
@@ -138,14 +145,16 @@ private:
         int startX = 2;      // 시작 X 좌표
         int boxHeight = 5;   // 각 상자의 세로 길이
         int boxWidth = 10;   // 각 상자의 가로 길이
-    
+        sum = 0;
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
                 int y = startY + i * boxHeight;
                 int x = startX + j * boxWidth;
                 createBox(y, x, boxHeight, boxWidth, arr[i][j]);
+                sum += arr[i][j];
             }
         }
+        createBox(1,45, 5, 20, sum);
     }
     
 
@@ -265,14 +274,36 @@ private:
             spawnTile();
         return;
     }
+    bool checkGameOver() {
+        // 빈 칸이 있으면 아직 가능
+        for (int i = 0; i < 4; ++i)
+            for (int j = 0; j < 4; ++j)
+                if (arr[i][j] == 0)
+                    return false;
 
+        // 상하좌우 인접 숫자가 같으면 가능
+        for (int i = 0; i < 4; ++i)
+            for (int j = 0; j < 4; ++j) {
+                if (i < 3 && arr[i][j] == arr[i + 1][j]) return false;
+                if (j < 3 && arr[i][j] == arr[i][j + 1]) return false;
+            }
+
+        return true; // 더 이상 이동 불가
+    }
 public:
     void play() override {
         spawnTile();
         while (true) {
             displayBoard();
             char input;
-            
+            if (checkGameOver()) {
+                mvprintw(22, 0, "💀 더 이상 움직일 수 없습니다. 게임 오버! (q로 종료)");
+                refresh();
+                char c = getch();
+                if (c == 'q') break;
+                continue;
+            }
+
             input = getc();
             if (input == 'q') break;
             if (input == 27) { // ESC
@@ -324,17 +355,41 @@ public:
     void print_board() const {
         auto piece_symbol = [](char type, char color) -> string {
             switch (type) {
-            case 'p': return color == 'w' ? "P" : "p";
-            case 'r': return color == 'w' ? "R" : "r";
-            case 'n': return color == 'w' ? "N" : "n";
-            case 'b': return color == 'w' ? "B" : "b";
-            case 'q': return color == 'w' ? "Q" : "q";
-            case 'k': return color == 'w' ? "K" : "k";
+            case 'p': return color == 'w' ? "♙" : "♟";
+            case 'r': return color == 'w' ? "♖" : "♜";
+            case 'n': return color == 'w' ? "♘" : "♞";
+            case 'b': return color == 'w' ? "♗" : "♝";
+            case 'q': return color == 'w' ? "♕" : "♛";
+            case 'k': return color == 'w' ? "♔" : "♚";
+
             default: return " ";
             }
-            };
-
-        cout << "\n    a   b   c   d   e   f   g   h\n";
+        };
+        const char* row[8] = {"a","b","c","d","e","f","g","h"};
+        const char* col[8] = {"1","2","3","4","5","6","7","8"};
+        box(2, 2, 3, 9, "  ", 17);
+        for(int i = 0; i < 8; i++){
+            box(2, 11+i*9, 3, 9, row[i], 17);
+        }
+        box(2, 83, 3, 9, "  ", 17);
+        for (int i = 0; i < 8; ++i) {
+            box(5+i*3, 2, 3, 9, col[7-i], 17);
+            for (int j = 0; j < 8; ++j) {
+                Piece p = board[i][j];
+                if((i+j)%2 == 0){
+                    box(5+i*3, 11+j*9, 3, 9, piece_symbol(p.type, p.color).c_str(), 16);
+                }else{
+                    box(5+i*3, 11+j*9, 3, 9, piece_symbol(p.type, p.color).c_str(), 15);
+                }
+            }
+            box(5+i*3, 83, 3, 9, col[7-i], 17);
+        }
+        box(29, 2, 3, 9, "  ", 17);
+        for(int i = 0; i < 8; i++){
+            box(29, 11+i*9, 3, 9, row[i], 17);
+        }
+        box(29, 83, 3, 9, "  ", 17);
+        /*cout << "\n    a   b   c   d   e   f   g   h\n";
         cout << "  +---+---+---+---+---+---+---+---+\n";
         for (int i = 0; i < 8; ++i) {
             cout << 8 - i << " |";
@@ -345,7 +400,7 @@ public:
             cout << " " << 8 - i << "\n";
             cout << "  +---+---+---+---+---+---+---+---+\n";
         }
-        cout << "    a   b   c   d   e   f   g   h\n\n";
+        cout << "    a   b   c   d   e   f   g   h\n\n";*/
     }
 
     // 이동 경로가 비어있는지 확인 (룩, 비숍, 퀸용)
@@ -473,8 +528,9 @@ public:
 
     // 실제 기물 이동 수행
     bool move_piece(const string& move) {
+        initscr();
         if (move.length() != 4) {
-            cout << "잘못된 입력입니다! (예: e2e4)\n";
+            cout << "잘못된 입력입니다! (예: e2e4)                          \n";
             return false;
         }
 
@@ -484,24 +540,24 @@ public:
 
         if (from_row < 0 || from_row > 7 || to_row < 0 || to_row > 7 ||
             from_col < 0 || from_col > 7 || to_col < 0 || to_col > 7) {
-            cout << "잘못된 위치입니다!\n";
+            cout << "잘못된 위치입니다!                                     \n";
             return false;
         }
 
         Piece p = board[from_row][from_col];
         if (p.type == ' ') {
-            cout << "빈 칸입니다!\n";
+            cout << "빈 칸입니다!                                           \n";
             return false;
         }
 
         if ((current_turn == 0 && p.color != 'w') ||
             (current_turn == 1 && p.color != 'b')) {
-            cout << "잘못된 턴입니다!\n";
+            cout << "잘못된 턴입니다!                                        \n";
             return false;
         }
 
         if (!is_valid_move(p, from_row, from_col, to_row, to_col)) {
-            cout << "허용되지 않은 이동입니다!\n";
+            cout << "허용되지 않은 이동입니다!                                  \n";
             return false;
         }
 
@@ -524,7 +580,7 @@ public:
 
         // 체크 상태 여부 확인
         if (is_in_check(p.color)) {
-            cout << "자기 킹이 체크에 빠집니다!\n";
+            cout << "자기 킹이 체크에 빠집니다!                             \n";
             board[from_row][from_col] = p;
             board[to_row][to_col] = captured;
             return false;
@@ -534,7 +590,7 @@ public:
         if (p.type == 'p' && (to_row == 0 || to_row == 7)) {
             char choice;
             do {
-                cout << "승격할 기물을 선택하세요 (q, r, b, n): ";
+                cout << "승격할 기물을 선택하세요 (q, r, b, n):                         ";
                 cin >> choice;
             } while (choice != 'q' && choice != 'r' && choice != 'b' && choice != 'n');
             board[to_row][to_col].type = choice;
@@ -553,35 +609,60 @@ public:
         if (is_in_check(next_color)) {
             if (!has_any_valid_move(next_color)) {
                 print_board();
-                cout << (next_color == 'w' ? "백" : "흑") << "이 체크메이트로 패배했습니다!\n";
+                cout << (next_color == 'w' ? "백" : "흑") << "이 체크메이트로 패배했습니다!                         \n";
                 cin.get();
                 exit(0);
             }
             else {
-                cout << "체크!\n";
+                cout << "체크!                                                      \n";
             }
         }
         else if (!has_any_valid_move(next_color)) {
             print_board();
-            cout << "스테일메이트! 무승부입니다.\n";
+            cout << "스테일메이트! 무승부입니다.                                        \n";
             cin.get();
             exit(0);
         }
+        
+        clear();
+        refresh();
 
         return true;
     }
 
     // 게임 루프 실행
     void play() override {
-        string input;
-        while (true) {
-            print_board();
-            cout << (current_turn == 0 ? "백" : "흑") << "의 턴입니다. (예: e2e4): ";
-            cin >> input;
-            if (input == "exit") break;
-            if (!move_piece(input)) continue;
+    initscr();      // ncurses 초기화
+    clear();        // 화면 지우기
+    refresh();      // 화면 갱신
+    echo();         // 사용자 입력 보이게 함
+
+    char buffer[100];
+    string input;
+
+    while (true) {
+        print_board();  // 보드 그리기 함수 (ncurses 기반이어야 함)
+        move(35, 0);     // 커서 이동
+        clrtoeol();      // 기존 줄 내용 지우기
+
+        if (current_turn == 0) {
+            mvprintw(35, 0, "백의 턴입니다. (예: e2e4): ");
+        } else {
+            mvprintw(35, 0, "흑의 턴입니다. (예: e2e4): ");
         }
+
+        move(35, 27);     // 입력 위치로 이동
+        getstr(buffer);   // scanw보다 안정적인 방법
+        input = buffer;
+
+        if (input == "exit") break;
+        if (!move_piece(input)) continue;
     }
+
+    endwin(); // ncurses 종료
+}
+
+
 };
 
 class Wordle : public Game {
@@ -595,14 +676,14 @@ public:
 
 int main() {
     srand(static_cast<unsigned>(time(0)));
-
+    setlocale(LC_ALL, "");
     initscr();                // 한 번만 초기화
     start_color();            // 컬러 초기화도 한 번만
     setColor();               // 색상 설정도 한 번만
     curs_set(0);              // 커서 숨김
     keypad(stdscr, TRUE);
     noecho();
-
+    locale::global(std::locale(""));
     while (true) {
         int choice = choiceGame();  // 선택 UI 실행
         Game* game = nullptr;
