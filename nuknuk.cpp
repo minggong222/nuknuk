@@ -10,6 +10,12 @@
 #include <cmath>
 #include <locale.h>
 #include <cstring>
+#include <locale>
+#include <set>
+#include <random>  
+#include <sstream>
+#include <fstream>
+#include <algorithm>
 using namespace std;
 
 // 기물 구조체: 종류(type)와 색(color)을 저장
@@ -319,11 +325,11 @@ public:
 };
 
 class Chess : public Game {
-    private:
+private:
     Piece board[8][8];                   // 체스판
     int current_turn;                    // 0: 백의 턴, 1: 흑의 턴
     pair<int, int> en_passant_target;    // 앙파상 대상 위치 (행, 열)
-
+    bool onGame = true;
 public:
     // 생성자: 초기 턴은 백, 앙파상 위치 초기화 후 보드 설정
     Chess() : current_turn(0), en_passant_target({ -1, -1 }) 
@@ -657,7 +663,7 @@ public:
                 cout << (next_color == 'w' ? "백" : "흑") << "이 체크메이트로 패배했습니다!                         \n";
                 clear();
                 refresh();
-                break;
+                onGame = false;
                 exit(0);
             }
             else 
@@ -671,7 +677,7 @@ public:
             cout << "스테일메이트! 무승부입니다.                                        \n";
             clear();
             refresh();
-            break;
+            onGame = false;
             exit(0);
         }
         
@@ -712,6 +718,10 @@ public:
 
         if (input == "exit") break;
         if (!move_piece(input)) continue;
+        if(!onGame){
+            getc();
+            break;
+        }
     }
 
     endwin(); // ncurses 종료
@@ -721,13 +731,108 @@ public:
 };
 
 class Wordle : public Game {
+private:
+    vector<vector<wstring>> word_list;
+    vector<wstring> today_word;
+    set<vector<wstring>> word_set;
+
+    void load_word_list(const string& filename) {
+        wifstream file(filename);
+        file.imbue(locale(""));  
+        if (!file) {
+            wcout << L"파일을 열 수 없습니다: " << filename.c_str() << L'\n';
+            return;
+        }
+
+        wstring line;
+        while (getline(file, line)) {
+            if (!line.empty()) {
+                vector<wstring> word;
+                wstringstream wss(line);
+                wstring jamo;
+                while (wss >> jamo) {
+                    word.push_back(jamo);
+                }
+                if (word.size() == 6) {
+                    word_list.push_back(word);
+                    word_set.insert(word);
+                }
+            }
+        }
+        file.close();
+    }
+
+    void choose_random_word() {
+        if (word_list.empty()) {
+            today_word.clear();
+            return;
+        }
+        random_device rd;
+        mt19937 gen(rd());
+        uniform_int_distribution<> dis(0, word_list.size() - 1);
+        today_word = word_list[dis(gen)];
+    }
+
+    bool is_valid_word(const vector<wstring>& guess) {
+        return word_set.find(guess) != word_set.end();
+    }
+
+    void print_feedback(const vector<wstring>& guess) {
+        for (int i = 0; i < 6; ++i) {
+            if (guess[i] == today_word[i]) {
+                wcout << L"\033[32mO(" << guess[i] << L") \033[0m";  // 초록색
+            }
+            else if (find(today_word.begin(), today_word.end(), guess[i]) != today_word.end()) {
+                wcout << L"\033[33m△(" << guess[i] << L") \033[0m";  // 노란색
+            }
+            else {
+                wcout << L"\033[90mX(" << guess[i] << L") \033[0m";  // 회색
+            }
+        }
+        wcout << L'\n';
+    }
+
 public:
     void play() override {
-        //스더 이 함수가 메인이야
+        locale::global(locale(""));
+        wcin.imbue(locale());
+        wcout.imbue(locale());
 
-        cout <<"hello world";
+        load_word_list("wordlist_jamo.txt");
+        choose_random_word();
+
+        vector<wstring> guess(6);
+        int max_attempts = 5;
+
+        for (int attempt = 1; attempt <= max_attempts; ++attempt) {
+            while (true) {
+                wcout << L"\n[" << attempt << L"/" << max_attempts << L"] 자모 6개를 공백으로 구분해 입력하세요: ";
+                for (int i = 0; i < 6; ++i) wcin >> guess[i];
+
+                if (!is_valid_word(guess)) {
+                    wcout << L"단어 목록에 없는 단어입니다. 다시 입력하세요.\n";
+                    continue;
+                }
+                break;
+            }
+
+            if (guess == today_word) {
+                wcout << L"\n 정답입니다!\n";
+                system("pause");
+                return;
+            }
+
+            print_feedback(guess);
+            wcout << L"남은 기회: " << (max_attempts - attempt) << L"\n";
+        }
+
+        wcout << L"\n실패! 정답은: ";
+        for (const wstring& j : today_word) wcout << j;
+        wcout << L"\n";
+        system("pause");
     }
 };
+
 
 int main() {
     srand(static_cast<unsigned>(time(0)));
