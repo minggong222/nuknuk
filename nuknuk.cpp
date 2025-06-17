@@ -657,6 +657,7 @@ public:
                 cout << (next_color == 'w' ? "백" : "흑") << "이 체크메이트로 패배했습니다!                         \n";
                 cin.get();
                 clear();
+                break;
                 exit(0);
             }
             else 
@@ -670,6 +671,7 @@ public:
             cout << "스테일메이트! 무승부입니다.                                        \n";
             cin.get();
             clear();
+            break;
             exit(0);
         }
         
