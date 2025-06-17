@@ -50,24 +50,6 @@ void setColor(){
         init_pair(i, COLOR_BLACK, i);
     }
 }
-int getc(void){
-    int ch;
-
-    struct termios buf;
-    struct termios current;
-
-    tcgetattr(0, &buf);
-
-    current = buf;
-    buf.c_lflag &= ~ICANON;    // non-canonical input 설정
-    buf.c_lflag &= ~ECHO; 
-
-    tcsetattr(0, TCSANOW, &current);
-    ch = getchar();
-    tcsetattr(0, TCSANOW, &buf);
-
-    return ch;
-}
 WINDOW* box(int y, int x, int height, int width, const char* value, int color) {
     WINDOW* win = newwin(height-1, width-2, y, x);
 
@@ -122,6 +104,24 @@ class Game2048 : public Game {
 private:
     int arr[4][4] = {};
     int sum = 0;
+    int getc(void){
+        int ch;
+
+        struct termios buf;
+        struct termios current;
+
+        tcgetattr(0, &buf);
+
+        current = buf;
+        buf.c_lflag &= ~ICANON;    // non-canonical input 설정
+        buf.c_lflag &= ~ECHO; 
+
+        tcsetattr(0, TCSANOW, &current);
+        ch = getchar();
+        tcsetattr(0, TCSANOW, &buf);
+
+        return ch;
+    }
     void spawnTile() {
         while (true) {
             int x = rand() % 4;
@@ -131,18 +131,6 @@ private:
                 break;
             }
         }
-    }
-    WINDOW* createBox(int y, int x, int height, int width, int value) {
-        WINDOW* win = newwin(height-1, width-2, y, x);
-
-        if (value != 0) {
-            wbkgd(win, COLOR_PAIR(log2(value) + 1)); 
-            mvwprintw(win, height / 2, (width - 4) / 2, "%4d", value);
-        }else{
-            wbkgd(win, COLOR_PAIR(1)); 
-        }
-        wrefresh(win);
-        return win;
     }
     
     void displayBoard() {
@@ -157,18 +145,22 @@ private:
             for (int j = 0; j < 4; ++j) {
                 int y = startY + i * boxHeight;
                 int x = startX + j * boxWidth;
-                createBox(y, x, boxHeight, boxWidth, arr[i][j]);
+                if(arr[i][j])
+                    box(y, x, boxHeight, boxWidth, to_string(arr[i][j]).c_str(),log2(arr[i][j]) + 1);
+                else
+                    box(y, x, boxHeight, boxWidth, to_string(arr[i][j]).c_str(),1);
                 sum += arr[i][j];
             }
         }
-        createBox(1,45, 5, 20, sum);
+        box(1,45, 5, 20,to_string(sum).c_str(), 5);
+        box(6,45, 5, 20,"q로 종료", 5);
     }
     
 
-    void move(char input) {
+    void move(int input) {
         bool sw = false;
         switch (input) {
-        case 'A':
+        case KEY_UP:
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
                     if(!arr[j][i])  continue;
@@ -195,7 +187,7 @@ private:
                 }
             }
             break;
-        case 'B':
+        case KEY_DOWN:
             for (int i = 3; i >= 0; i--) {
                 for (int j = 3; j >= 0; j--) {
                     if(!arr[j][i])  continue;
@@ -222,7 +214,7 @@ private:
                 }
             }
             break;
-        case 'C':
+        case KEY_RIGHT:
             for (int i = 3; i >= 0; i--) {
                 for (int j = 3; j >= 0; j--) {
                     if(!arr[i][j])  continue;
@@ -249,7 +241,7 @@ private:
                 }
             }
             break;
-        case 'D':
+        case KEY_LEFT:
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
                     if(!arr[i][j])  continue;
@@ -299,10 +291,13 @@ private:
     }
 public:
     void play() override {
+        initscr();      // ncurses 초기화
+        clear();        // 화면 지우기
+        refresh();      // 화면 갱신
+        echo();         // 사용자 입력 보이게 함
         spawnTile();
         while (true) {
             displayBoard();
-            char input;
             if (checkGameOver()) {
                 mvprintw(22, 0, "💀 더 이상 움직일 수 없습니다. 게임 오버! (q로 종료)");
                 refresh();
@@ -311,15 +306,12 @@ public:
                 continue;
             }
 
-            input = getc();
+            int input = getch();
             if (input == 'q') break;
-            if (input == 27) { // ESC
-                input = getc();
-                if (input == 91) {
-                    input= getc();
-                    move(input);
-                }
-            }
+          
+            move(input);
+            
+            
         }
         endwin();
     }
@@ -660,12 +652,9 @@ public:
         {
             if (!has_any_valid_move(next_color)) 
             {
-                print_board();
+                //print_board();
                 cout << (next_color == 'w' ? "백" : "흑") << "이 체크메이트로 패배했습니다!                         \n";
-                clear();
-                refresh();
                 onGame = false;
-                exit(0);
             }
             else 
             {
@@ -674,16 +663,10 @@ public:
         }
         else if (!has_any_valid_move(next_color)) 
         {
-            print_board();
+            //print_board();
             cout << "스테일메이트! 무승부입니다.                                        \n";
-            clear();
-            refresh();
             onGame = false;
-            exit(0);
         }
-        
-        clear();
-        refresh();
 
         return true;
     }
@@ -703,8 +686,11 @@ public:
     {
         print_board();  // 보드 그리기 함수 (ncurses 기반이어야 함)
         move(35, 0);     // 커서 이동
+        if(!onGame){
+            getch();
+            break;
+        }
         clrtoeol();      // 기존 줄 내용 지우기
-
         if (current_turn == 0) 
         {
             mvprintw(35, 0, "백의 턴입니다. (예: e2e4): ");
@@ -719,10 +705,6 @@ public:
 
         if (input == "exit") break;
         if (!move_piece(input)) continue;
-        if(!onGame){
-            getc();
-            break;
-        }
     }
 
     endwin(); // ncurses 종료
@@ -798,10 +780,9 @@ public:
         locale::global(locale(""));
         wcin.imbue(locale());
         wcout.imbue(locale());
-        write (1, "\033[1;1H\033[2J", 10); 
         load_word_list("wordlist_jamo.txt");
         choose_random_word();
-
+        write (1, "\033[1;1H\033[2J", 10); 
         vector<wstring> guess(6);
         int max_attempts = 5;
 
@@ -848,7 +829,7 @@ public:
         wcout << L"\n실패! 정답은: ";
         for (const wstring& j : today_word) wcout << j;
         wcout << L"\n";
-        system("pause");
+        getch();
     }
 };
 
@@ -883,6 +864,7 @@ int main() {
         }
 
         game->play();         // 게임 실행 (endwin 제거)
+        delete game;
     }
 
     endwin();  // 안전하게 추가
