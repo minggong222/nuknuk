@@ -16,6 +16,7 @@
 #include <sstream>
 #include <fstream>
 #include <algorithm>
+
 using namespace std;
 
 // 기물 구조체: 종류(type)와 색(color)을 저장
@@ -797,7 +798,7 @@ public:
         locale::global(locale(""));
         wcin.imbue(locale());
         wcout.imbue(locale());
-
+        write (1, "\033[1;1H\033[2J", 10); 
         load_word_list("wordlist_jamo.txt");
         choose_random_word();
 
@@ -806,8 +807,25 @@ public:
 
         for (int attempt = 1; attempt <= max_attempts; ++attempt) {
             while (true) {
-                wcout << L"\n[" << attempt << L"/" << max_attempts << L"] 자모 6개를 공백으로 구분해 입력하세요: ";
-                for (int i = 0; i < 6; ++i) wcin >> guess[i];
+                wcout << L"\n[" << attempt << L"/" << max_attempts << L"] 자모 6개를 공백으로 구분해 입력하세요 (종료하려면 'exit'): ";
+                bool user_wants_exit = false;
+
+                for (int i = 0; i < 6; ++i) {
+                    wstring input;
+                    wcin >> input;
+
+                    if (input == L"exit") {
+                        user_wants_exit = true;
+                        break;
+                    }
+
+                    guess[i] = input;
+                }
+
+                if (user_wants_exit) {
+                    wcout << L"게임을 종료합니다.\n";
+                    return; // 또는 break;를 사용해 바깥 for문만 종료하게 할 수도 있음
+                }
 
                 if (!is_valid_word(guess)) {
                     wcout << L"단어 목록에 없는 단어입니다. 다시 입력하세요.\n";
@@ -817,14 +835,15 @@ public:
             }
 
             if (guess == today_word) {
-                wcout << L"\n 정답입니다!\n";
-                system("pause");
+                wcout << L"\n정답입니다!\n";
+                getch();
                 return;
             }
 
             print_feedback(guess);
             wcout << L"남은 기회: " << (max_attempts - attempt) << L"\n";
         }
+
 
         wcout << L"\n실패! 정답은: ";
         for (const wstring& j : today_word) wcout << j;
