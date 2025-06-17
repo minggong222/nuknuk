@@ -656,6 +656,7 @@ public:
                 print_board();
                 cout << (next_color == 'w' ? "백" : "흑") << "이 체크메이트로 패배했습니다!                         \n";
                 cin.get();
+                endwin();
                 exit(0);
             }
             else 
@@ -668,6 +669,7 @@ public:
             print_board();
             cout << "스테일메이트! 무승부입니다.                                        \n";
             cin.get();
+            endwin();
             exit(0);
         }
         
@@ -721,7 +723,7 @@ public:
     void play() override {
         //스더 이 함수가 메인이야
 
-        cout <<"hello";
+        cout <<"hello world";
     }
 };
 
